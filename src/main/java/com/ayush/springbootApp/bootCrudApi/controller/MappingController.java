@@ -1,6 +1,7 @@
 package com.ayush.springbootApp.bootCrudApi.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,6 +23,12 @@ public class MappingController{
 	@PostMapping("/empPrj")
 	public String empPrjMapping(@RequestBody String mapData){
 		return mappingService.empPrjMapping(mapData);
+	}
+	
+	@DeleteMapping("/releaseEmp")
+	public String releaseEmpFromProject(@RequestBody String relData)
+	{
+		return mappingService.releaseEmpFromProject(relData);
 	}
 	
 	@GetMapping("/empWorkstation/{empId}/{seatNo}")

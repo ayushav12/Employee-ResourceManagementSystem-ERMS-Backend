@@ -9,4 +9,6 @@ public interface MappingDAO{
 	public Employee empWorkStationMaping(int empId,String seatNo);
 	
 	public String markAsVacant(String seats);
+	
+	public String releaseEmpFromProject(String relData);
 }

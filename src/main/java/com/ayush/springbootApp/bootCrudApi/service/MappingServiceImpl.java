@@ -32,5 +32,13 @@ public class MappingServiceImpl implements MappingService{
 	public String markAsVacant(String seats) {
 		return MappingDAO.markAsVacant(seats);
 	}
+
+	@Transactional
+	@Override
+	public String releaseEmpFromProject(String relData) {
+		return MappingDAO.releaseEmpFromProject(relData);
+	}
+	
+	
 	
 }

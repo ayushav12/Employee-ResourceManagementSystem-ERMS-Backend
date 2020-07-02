@@ -6,9 +6,11 @@ import java.util.Set;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
+import javax.persistence.Tuple;
 
 import org.hibernate.Session;
-import org.json.JSONObject;
+import org.hibernate.Transaction;
+import org.hibernate.query.NativeQuery;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -16,7 +18,6 @@ import com.ayush.springbootApp.bootCrudApi.model.*;
 import com.ayush.springbootApp.bootCrudApi.service.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @Repository
@@ -129,5 +130,41 @@ public class MappingDAOImpl implements MappingDAO{
 		}
 		return jsonString;
 	}
+
+	@Override
+	public String releaseEmpFromProject(String relData) {
+		Session currSession= entityManager.unwrap(Session.class);
+		try{
+			entityManager.flush(); //to write changes to DB from persistent context
+			entityManager.clear(); //to clear persistence context
+			JsonNode json= om.readValue(relData, JsonNode.class);
+			int prjId1=json.get("projectId").asInt();
+			
+			@SuppressWarnings("rawtypes")
+			NativeQuery query=currSession.createSQLQuery("Delete from emp_project_mapping where project_id=:prjId and emp_id =:empId");
+			query.setParameter("prjId", prjId1);
+			JsonNode empArr=json.get("employees");
+			System.out.println("Employee json array="+empArr.asText());
+			for(Iterator<JsonNode> empIt=empArr.iterator();empIt.hasNext();)
+			{
+				Integer empId= empIt.next().asInt();
+				System.out.println("Employee ID:"+empId);
+				//Employee emp=empService.get(empId);
+				query.setParameter("empId", empId);
+				//emp.setProject(prjs);
+				int res=query.executeUpdate();
+				if(res!=1)
+					throw new Exception();
+			}
+			return "Employee(s) Released!";
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+			return e.getMessage();
+		}
+	}
+	
+	
 	
 }
