@@ -1,14 +1,14 @@
 package com.ayush.springbootApp.bootCrudApi.model;
 
 import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.ManyToMany;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import com.ayush.springbootApp.bootCrudApi.model.Employee;
 
@@ -33,8 +33,12 @@ public class Project{
 	@Column
 	private int project_active;
 	
-	@ManyToMany(mappedBy="prj")
-	private Set<Employee> emp=new HashSet<Employee>();
+	//old mapping commented and now handled by EmployeeProjectRole.java and below @OneToMany definition
+	//@ManyToMany(mappedBy="prj")
+	//private Set<Employee> emp=new HashSet<Employee>();
+	
+	@OneToMany(mappedBy="prj")
+	private List<EmployeeProjectRole> epr;
 	
 	public Integer getId() {
 		return id;
@@ -80,15 +84,13 @@ public class Project{
 	{
 		this.project_active=project_active;
 	}
-	public Set<Employee> getEmployee()
-	{
-		return this.emp;
-	}
-	public void setEmployee(Set<Employee> emp)
-	{
-		this.emp=emp;
-	}
 	
+	public List<EmployeeProjectRole> getEpr() {
+		return epr;
+	}
+	public void setEpr(List<EmployeeProjectRole> epr) {
+		this.epr = epr;
+	}
 	@Override
 	public String toString() {
 		return "Project [id=" + id + ", oea_number=" + oea_number + ", project_name=" + project_name + ", client_name="

@@ -5,7 +5,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ayush.springbootApp.bootCrudApi.dao.MappingDAO;
-import com.ayush.springbootApp.bootCrudApi.model.Employee;
 
 @Service
 public class MappingServiceImpl implements MappingService{
@@ -13,7 +12,7 @@ public class MappingServiceImpl implements MappingService{
 	@Autowired
 	private MappingDAO MappingDAO;
 	
-	@Transactional
+	//@Transactional
 	@Override
 	public String empPrjMapping(String mapData) {
 		

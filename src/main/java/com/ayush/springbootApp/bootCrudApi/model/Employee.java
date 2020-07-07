@@ -1,26 +1,19 @@
 package com.ayush.springbootApp.bootCrudApi.model;
 
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.IdClass;
-import javax.persistence.JoinTable;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToMany;
+import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
-import com.ayush.springbootApp.bootCrudApi.model.Project;
-import com.ayush.springbootApp.bootCrudApi.model.Workstation;
 
 @Entity
-//@IdClass(EmpId.class)
 @Table (name="employee_table")
 //model class for Employee
 public class Employee {
@@ -45,10 +38,13 @@ public class Employee {
 	@OneToOne(mappedBy="emp")
 	private Workstation workStation;
 	
-	@ManyToMany
-	@JoinTable(name="emp_project_mapping",joinColumns=@JoinColumn(name="emp_id"),inverseJoinColumns=@JoinColumn(name="project_id"))
-	private Set<Project> prj=new HashSet<Project>();
+	//old mapping commented and now handled by EmployeeProjectRole.java and below object definition
+	//@ManyToMany
+	//@JoinTable(name="emp_project_mapping",joinColumns=@JoinColumn(name="emp_id"),inverseJoinColumns=@JoinColumn(name="project_id"))
+	//private Set<Project> prj=new HashSet<Project>();
 	
+	@OneToMany(mappedBy="emp")
+	private List<EmployeeProjectRole> epr;
 	
 	public Integer getId() {
 		return id;
@@ -93,14 +89,8 @@ public class Employee {
 	public void setEmpCode(String empCode) {
 		this.empCode = empCode;
 	}
-	public Set<Project> getProject()
-	{
-		return this.prj;
-	}
-	public void setProject(Set<Project> prj)
-	{
-		this.prj=prj;
-	}
+	
+	
 	
 	@Override
 	public String toString() {

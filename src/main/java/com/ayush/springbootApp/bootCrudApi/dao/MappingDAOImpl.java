@@ -1,15 +1,8 @@
 package com.ayush.springbootApp.bootCrudApi.dao;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
-
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
-import javax.persistence.Tuple;
-
 import org.hibernate.Session;
-import org.hibernate.Transaction;
 import org.hibernate.query.NativeQuery;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -27,10 +20,13 @@ public class MappingDAOImpl implements MappingDAO{
 	private EntityManager entityManager;
 	
 	@Autowired
+	private EmployeeService empService;
+	
+	@Autowired
 	private ProjectService prjService;
 	
 	@Autowired
-	private EmployeeService empService; 
+	private RoleService roleService;
 	
 	ObjectMapper om=new ObjectMapper();
 	
@@ -39,23 +35,58 @@ public class MappingDAOImpl implements MappingDAO{
 		
 		try{
 			Session currSession= entityManager.unwrap(Session.class);
+			String query="select count(*) from EmployeeProjectRole epr where epr.emp.id=:empId and epr.prj.id=:prjId and epr.role.id=:roleId";
+			Query hql= currSession.createQuery(query);
+			
+			//JsonNode is immutable whereas its subclass ObjectNode is immutable.Hence, when reading JSON should use JsonNode
+			//and when manipulating JSON,should use ObjectNode
 			JsonNode json= om.readValue(mapData, JsonNode.class);
 			int prjId1=json.get("projectId").asInt();
-			Project prj1=prjService.getProjectById(prjId1);
-			Set<Project> prjs=new HashSet<Project>();
-			prjs.add(prj1);
 			
-			JsonNode empArr=json.get("employees");
-			System.out.println("Employee json array="+empArr.asText());
-			for(Iterator<JsonNode> empIt=empArr.iterator();empIt.hasNext();)
+			hql.setParameter("prjId", prjId1);
+			//JsonNode empArr=json.get("employees"); //this is also fetch same result as path("employees")
+			JsonNode empArr=json.path("employees");
+			if(empArr.isArray())
 			{
-				Integer empId= empIt.next().asInt();
-				System.out.println("Employee ID:"+empId);
-				Employee emp=empService.get(empId);
-				emp.setProject(prjs);
-				currSession.save(emp);
+				for(JsonNode empObj:empArr)
+				{
+					EmployeeProjectRole epr=new EmployeeProjectRole();
+					epr.setPrj(prjService.getProjectById(prjId1));
+					
+					Integer empId= empObj.path("empId").asInt();
+					epr.setEmp(empService.get(empId));
+					hql.setParameter("empId", empId);
+					
+					Integer roleId= empObj.path("roleId").asInt();
+					epr.setRole(roleService.get(roleId));
+					hql.setParameter("roleId", roleId);
+					
+					//check through criteria API to facilitate single role of an employee in a project by getting count from table
+					/*CriteriaBuilder cb=currSession.getCriteriaBuilder(); 
+					CriteriaQuery<Long> criteria = cb.createQuery(Long.class);
+					criteria.select(cb.count(criteria.from(EmployeeProjectRole.class)));
+					
+					
+					Root<EmployeeProjectRole> eprRoot= criteria.from(EmployeeProjectRole.class);
+	                //criteria.select(eprRoot);
+					
+	                List<Predicate> prds=new ArrayList<>();
+	                prds.add(cb.equal(eprRoot.get("emp_id"),empId));
+	                prds.add(cb.equal(eprRoot.get("prj_id"),prjId1));
+	                prds.add(cb.equal(eprRoot.get("role_id"),roleId));
+
+	                criteria.where(prds.toArray(new Predicate[]{})); //select query
+	                Long count= entityManager.createQuery(criteria).getSingleResult();*/
+					Long count=(Long) hql.getSingleResult();
+	                 
+	                if(count==0)
+	                	currSession.save(epr);
+				}
+				return "Employee(s) Mapped!";
 			}
-			return "Employee(s) Mapped!";
+			else{
+				return "Incorrect Data formatting!";
+			}
 		}
 		catch(Exception e)
 		{
@@ -68,8 +99,6 @@ public class MappingDAOImpl implements MappingDAO{
 	@Override
 	public Employee empWorkStationMaping(int empId,String seatNo) {
 		Session currSession= entityManager.unwrap(Session.class);
-		//int empId=(int)id;
-		//Employee emp1=empService.get(id);
 		Employee emp=empService.get(empId);
 		String hql1="FROM Workstation uw WHERE uw.seat_no = :sno"; //in HQL,type(model class name) is used instead of table name.Therefore,using model name Workstation instead of table name user_workstation
 		Query query= currSession.createQuery(hql1);
@@ -83,7 +112,8 @@ public class MappingDAOImpl implements MappingDAO{
 	@Override
 	public String markAsVacant(String seats)
 	{
-		String seatsStr="",jsonString="";
+		String seatsStr="";
+		String jsonString="";
 		try{
 			//using jackson for JSON manipulation
 			//ObjectMapper om=new ObjectMapper();
@@ -92,8 +122,7 @@ public class MappingDAOImpl implements MappingDAO{
 			{
 				seatsStr= seatsNode.get("seats").asText();
 			}
-			System.out.println("In DAO, seat string="+seatsStr);
-		
+			
 			String hql2="update Workstation uw set uw.emp=null where id = :seatId";
 			Query query=entityManager.unwrap(Session.class).createQuery(hql2);
 			String[] seatIds= seatsStr.split(",");
@@ -110,7 +139,6 @@ public class MappingDAOImpl implements MappingDAO{
 				{
 					Integer intSeatId=Integer.valueOf(seatId);
 					int ret=query.setParameter("seatId",intSeatId).executeUpdate();
-					System.out.println("Return="+ret);
 					JsonNode childNode=om.createObjectNode();
 					((ObjectNode) childNode).put("SeatId",seatId);
 					if(ret==1)
@@ -122,7 +150,7 @@ public class MappingDAOImpl implements MappingDAO{
 				}
 			}
 			jsonString = om.writerWithDefaultPrettyPrinter().writeValueAsString(rootNode);
-			System.out.println("Return JSON:"+jsonString);
+			
 		}
 		catch(Exception e)
 		{
@@ -141,22 +169,31 @@ public class MappingDAOImpl implements MappingDAO{
 			int prjId1=json.get("projectId").asInt();
 			
 			@SuppressWarnings("rawtypes")
-			NativeQuery query=currSession.createSQLQuery("Delete from emp_project_mapping where project_id=:prjId and emp_id =:empId");
+			NativeQuery query=currSession.createSQLQuery("Delete from employee_project_role where prj_id=:prjId and emp_id =:empId and role_id=:roleId");
 			query.setParameter("prjId", prjId1);
 			JsonNode empArr=json.get("employees");
-			System.out.println("Employee json array="+empArr.asText());
-			for(Iterator<JsonNode> empIt=empArr.iterator();empIt.hasNext();)
+			
+			if(empArr.isArray())
 			{
-				Integer empId= empIt.next().asInt();
-				System.out.println("Employee ID:"+empId);
-				//Employee emp=empService.get(empId);
-				query.setParameter("empId", empId);
-				//emp.setProject(prjs);
-				int res=query.executeUpdate();
-				if(res!=1)
-					throw new Exception();
+				for(JsonNode empObj:empArr)
+				{
+					Integer empId= empObj.path("empId").asInt();
+					
+					Integer roleId=empObj.path("roleId").asInt();
+					
+					query.setParameter("empId", empId);
+					query.setParameter("roleId", roleId);
+					
+					int res=query.executeUpdate();
+					if(res!=1)
+						throw new Exception();
+				}
+				return "Employee(s) Released!";
 			}
-			return "Employee(s) Released!";
+			else
+			{
+				return "Incorrect data formatting";
+			}
 		}
 		catch(Exception e)
 		{
